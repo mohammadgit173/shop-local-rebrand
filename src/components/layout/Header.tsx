@@ -10,11 +10,13 @@ import { Badge } from '@/components/ui/badge';
 import { Search, ShoppingCart, User, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import LanguageSwitcher from './LanguageSwitcher';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Header = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
   const { cart, isAuthenticated } = useApp();
+  const isMobile = useIsMobile();
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b shadow-sm">
@@ -24,34 +26,36 @@ const Header = () => {
           <div className="flex md:hidden">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="h-10 w-10">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side={language === 'ar' ? 'right' : 'left'}>
-                <div className="flex flex-col mt-6 space-y-4">
+              <SheetContent side={language === 'ar' ? 'right' : 'left'} className="w-[75%] sm:max-w-md">
+                <div className="flex flex-col mt-8 space-y-5">
                   <Button 
                     variant="ghost" 
-                    className="justify-start"
+                    className="justify-start text-lg h-12"
                     onClick={() => navigate('/')}
                   >
                     {t('home')}
                   </Button>
                   <Button 
                     variant="ghost" 
-                    className="justify-start"
+                    className="justify-start text-lg h-12"
                     onClick={() => navigate('/categories')}
                   >
                     {t('categories')}
                   </Button>
                   <Button 
                     variant="ghost" 
-                    className="justify-start"
+                    className="justify-start text-lg h-12"
                     onClick={() => navigate('/orders')}
                   >
                     {t('orders')}
                   </Button>
-                  <LanguageSwitcher />
+                  <div className="mt-4">
+                    <LanguageSwitcher />
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
@@ -65,7 +69,7 @@ const Header = () => {
             <img 
               src={storeConfig.logo} 
               alt={storeConfig.name} 
-              className="h-10 w-auto"
+              className={isMobile ? "h-8 w-auto" : "h-10 w-auto"}
             />
             <span className="ml-2 text-xl font-bold text-brand-dark hidden md:block">
               {language === 'en' ? storeConfig.name : 'شامي شوبينغ'}
@@ -95,10 +99,11 @@ const Header = () => {
           </nav>
 
           {/* Actions */}
-          <div className={cn("flex items-center space-x-2", language === 'ar' && "space-x-reverse")}>
+          <div className={cn("flex items-center", language === 'ar' ? "space-x-reverse" : "space-x-1")}>
             <Button 
               variant="ghost" 
               size="icon"
+              className="h-10 w-10"
               onClick={() => navigate('/search')}
             >
               <Search className="h-5 w-5" />
@@ -107,7 +112,7 @@ const Header = () => {
             <Button 
               variant="ghost" 
               size="icon"
-              className="relative"
+              className="relative h-10 w-10"
               onClick={() => navigate('/cart')}
             >
               <ShoppingCart className="h-5 w-5" />
@@ -124,12 +129,13 @@ const Header = () => {
             <Button 
               variant="ghost" 
               size="icon"
+              className="h-10 w-10"
               onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
             >
               <User className="h-5 w-5" />
             </Button>
 
-            <div className="hidden md:block">
+            <div className="hidden md:block ml-2">
               <LanguageSwitcher />
             </div>
           </div>

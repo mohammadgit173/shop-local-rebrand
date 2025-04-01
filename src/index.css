@@ -74,11 +74,23 @@
 
   body {
     @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* RTL support for Arabic */
   html[dir="rtl"] {
     text-align: right;
+  }
+  
+  /* Mobile-optimized styling */
+  @media (max-width: 768px) {
+    html {
+      font-size: 16px;
+    }
+    
+    input, button, select, textarea {
+      font-size: 16px; /* Prevents zoom on focus in iOS */
+    }
   }
 }
 
@@ -101,5 +113,18 @@
   
   .input-field {
     @apply border rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-brand-primary;
+  }
+  
+  /* Mobile-specific components */
+  .mobile-touch-target {
+    @apply min-h-[44px] min-w-[44px]; /* Minimum touch target size */
+  }
+  
+  .mobile-bottom-safe {
+    @apply pb-[env(safe-area-inset-bottom)]; /* Safe area for iPhone X+ */
+  }
+  
+  .mobile-card {
+    @apply rounded-xl shadow-sm p-4 bg-white;
   }
 }

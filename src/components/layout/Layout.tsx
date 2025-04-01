@@ -3,6 +3,7 @@ import React from 'react';
 import Header from './Header';
 import BottomNavigation from './BottomNavigation';
 import { useLocation } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface LayoutProps {
 
 const Layout = ({ children, hideNav = false }: LayoutProps) => {
   const location = useLocation();
+  const isMobile = useIsMobile();
   const isAuthPage = location.pathname.includes('/login') || 
                     location.pathname.includes('/register') || 
                     location.pathname.includes('/forgot-password');
@@ -18,7 +20,7 @@ const Layout = ({ children, hideNav = false }: LayoutProps) => {
   return (
     <div className="flex flex-col min-h-screen">
       {!isAuthPage && !hideNav && <Header />}
-      <main className="flex-grow pb-16 md:pb-0">
+      <main className={`flex-grow ${isMobile ? 'pb-20' : 'pb-0'}`}>
         {children}
       </main>
       {!isAuthPage && !hideNav && <BottomNavigation />}
