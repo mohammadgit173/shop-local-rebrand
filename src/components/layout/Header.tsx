@@ -104,7 +104,7 @@ const Header = () => {
               variant="ghost" 
               size="icon"
               className="h-10 w-10"
-              onClick={() => navigate('/search')}
+              onClick={() => navigate('/')}
             >
               <Search className="h-5 w-5" />
             </Button>
