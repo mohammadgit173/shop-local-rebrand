@@ -1,69 +1,101 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getCategoryById, getProductsByCategory, products as allProducts, categories } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import ProductList from '@/components/products/ProductList';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import CategoryList from '@/components/products/CategoryList';
+import type { Database } from '@/integrations/supabase/types';
 
 const CategoryPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { language, t } = useLanguage();
-  
-  const category = id ? getCategoryById(id) : null;
-  const categoryProducts = id ? getProductsByCategory(id) : [];
-  
+
+  type Category = Database['public']['Tables']['categories']['Row'] & { image_url: string };
+  type Product = Database['public']['Tables']['products']['Row'] & {
+    image_urls: string[];
+  };  
+  type ProductImage = Database['public']['Tables']['product_images']['Row'];
+
+  const [category, setCategory] = useState<Category | null>(null);
+  const [categoryProducts, setCategoryProducts] = useState<Product[]>([]);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [searchResults, setSearchResults] = useState<typeof allProducts>([]);
-  const [relatedCategoryResults, setRelatedCategoryResults] = useState<typeof categories>([]);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [relatedCategoryResults, setRelatedCategoryResults] = useState<Category[]>([]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchData = async () => {
+      const { data: catData } = await supabase.from('categories').select('*');
+      const enrichedCategories = (catData ?? []).map((cat) => {
+        const { data } = supabase.storage.from('category-images').getPublicUrl(cat.image_path);
+        return { ...cat, image_url: data?.publicUrl || '' };
+      });
+
+      const currentCategory = enrichedCategories.find(c => c.id === id) || null;
+      setCategory(currentCategory);
+      setAllCategories(enrichedCategories);
+
+      const { data: prodData } = await supabase.from('products').select('*, product_images(*)').eq('category_id', id);
+      const productsWithImages = (prodData ?? []).map((product) => {
+        const image_urls = (product.product_images ?? []).map((img: ProductImage) => {
+          const { data } = supabase.storage.from('product-images').getPublicUrl(img.path);
+          return data?.publicUrl || '';
+        });
+        return { ...product, image_urls };
+      });
+      
+
+      setCategoryProducts(productsWithImages);
+    };
+
+    fetchData();
+  }, [id]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!searchQuery.trim()) {
       setShowSearchResults(false);
       return;
     }
-    
+
     const query = searchQuery.toLowerCase();
-    
-    // Search only within the current category products
+
     const filteredProducts = categoryProducts.filter(product => {
-      const matchName = product.name.toLowerCase().includes(query);
-      const matchNameAr = product.nameAr?.toLowerCase().includes(query) || false;
-      const matchDescription = product.description.toLowerCase().includes(query);
-      const matchDescriptionAr = product.descriptionAr?.toLowerCase().includes(query) || false;
-      
-      return matchName || matchNameAr || matchDescription || matchDescriptionAr;
+      return (
+        product.name.toLowerCase().includes(query) ||
+        product.name_ar?.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query) ||
+        product.description_ar?.toLowerCase().includes(query)
+      );
     });
-    
-    // Find related categories if there are search terms
-    const filteredCategories = categories.filter(cat => {
-      // Don't include the current category
+
+    const filteredCategories = allCategories.filter(cat => {
       if (cat.id === id) return false;
-      
-      const matchName = cat.name.toLowerCase().includes(query);
-      const matchNameAr = cat.nameAr?.toLowerCase().includes(query) || false;
-      
-      return matchName || matchNameAr;
+      return (
+        cat.name.toLowerCase().includes(query) ||
+        cat.name_ar?.toLowerCase().includes(query)
+      );
     });
-    
+
     setSearchResults(filteredProducts);
     setRelatedCategoryResults(filteredCategories);
     setShowSearchResults(true);
   };
-  
+
   const clearSearch = () => {
     setSearchQuery('');
     setShowSearchResults(false);
   };
-  
+
   if (!category) {
     return (
       <Layout>
@@ -74,13 +106,13 @@ const CategoryPage = () => {
       </Layout>
     );
   }
-  
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center mb-6">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             onClick={() => navigate(-1)}
             className="mr-2"
@@ -88,17 +120,16 @@ const CategoryPage = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold">
-            {language === 'en' ? category.name : category.nameAr || category.name}
+            {language === 'en' ? category.name : category.name_ar || category.name}
           </h1>
         </div>
-        
-        {/* Search Bar */}
+
         <form onSubmit={handleSearch} className="relative mb-6">
           <div className="relative flex items-center">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <Input
               type="search"
-              placeholder={`${t('searchIn')} ${language === 'en' ? category.name : category.nameAr || category.name}`}
+              placeholder={`${t('searchIn')} ${language === 'en' ? category.name : category.name_ar || category.name}`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-10 h-12 w-full shadow-sm"
@@ -119,8 +150,7 @@ const CategoryPage = () => {
             {t('search')}
           </Button>
         </form>
-        
-        {/* Search Results or Products */}
+
         {showSearchResults ? (
           <>
             <div className="mb-4">
@@ -133,8 +163,7 @@ const CategoryPage = () => {
                 </Button>
               </div>
             </div>
-            
-            {/* Product Results */}
+
             {searchResults.length > 0 && (
               <section className="py-4">
                 <h2 className="text-xl font-bold mb-4">{t('products')}</h2>
@@ -142,15 +171,13 @@ const CategoryPage = () => {
               </section>
             )}
 
-            {/* Related Categories Results */}
             {relatedCategoryResults.length > 0 && (
               <section className="py-4">
                 <h2 className="text-xl font-bold mb-4">{t('relatedCategories')}</h2>
                 <CategoryList categories={relatedCategoryResults} />
               </section>
             )}
-            
-            {/* No Results */}
+
             {searchResults.length === 0 && relatedCategoryResults.length === 0 && (
               <div className="text-center py-10">
                 <p className="text-gray-500 mb-4">{t('noResultsFound')}</p>

@@ -60,7 +60,7 @@ export interface StoreConfig {
 export const shamiShoppingConfig: StoreConfig = {
   name: "Shami Shopping",
   slogan: "Fresh Groceries, Fast Delivery",
-  logo: "/assets/logo.png", // Will create this asset
+  logo: "src/assets/shami-logo.png", // Will create this asset
   favicon: "/favicon.ico",
   
   phone: "+961 1 234 567",

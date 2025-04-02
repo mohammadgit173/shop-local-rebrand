@@ -1,7 +1,11 @@
-
 import React from 'react';
-import { Category } from '@/types';
 import CategoryCard from './CategoryCard';
+import type { Database } from '@/integrations/supabase/types';
+
+type Category = Database['public']['Tables']['categories']['Row'] & {
+  image_url: string;
+};
+
 
 interface CategoryListProps {
   categories: Category[];

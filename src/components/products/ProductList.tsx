@@ -1,7 +1,11 @@
-
 import React from 'react';
-import { Product } from '@/types';
 import ProductCard from './ProductCard';
+import type { Database } from '@/integrations/supabase/types';
+
+type Product = Database['public']['Tables']['products']['Row'] & {
+  image_urls: string[];
+};
+
 
 interface ProductListProps {
   products: Product[];

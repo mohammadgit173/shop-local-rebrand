@@ -1,46 +1,47 @@
-
-// Product Types
+// 🌿 Product Types
 export interface Product {
   id: string;
   name: string;
-  nameAr?: string;
-  description: string;
-  descriptionAr?: string;
+  name_ar?: string;
+  description?: string;
+  description_ar?: string;
   price: number;
-  salePrice?: number;
-  images: string[];
-  category: string;
-  subcategory?: string;
-  inStock: boolean;
-  stockQuantity: number;
+  sale_price?: number;
+  images: string[]; // public URLs fetched from Supabase Storage
+  category_id: string;
+  subcategory?: string; // optional future field
+  in_stock: boolean;
+  stock_quantity: number;
   unit: string; // e.g., kg, piece, pack
   featured?: boolean;
   new?: boolean;
-  attributes?: { [key: string]: string };
+  attributes?: Record<string, string>;
 }
 
+// 🌿 Category Types
 export interface Category {
   id: string;
   name: string;
-  nameAr?: string;
-  icon: string;
+  name_ar?: string;
+  image_path: string;  // Supabase Storage path
   subcategories?: string[];
 }
 
-// User Types
+// 👤 User Types
 export interface User {
   id: string;
   email: string;
   name: string;
   phone?: string;
   addresses: Address[];
-  defaultAddressId?: string;
+  default_address_id?: string;
 }
 
+// 🏠 Address Type
 export interface Address {
   id: string;
   label: string; // e.g., Home, Work
-  fullAddress: string;
+  full_address: string;
   city: string;
   area?: string;
   building?: string;
@@ -53,18 +54,20 @@ export interface Address {
   };
 }
 
-// Order Types
-export type OrderStatus = 
-  | 'pending' 
-  | 'processing' 
-  | 'out_for_delivery' 
-  | 'delivered' 
+// 🛒 Order Types
+export type OrderStatus =
+  | 'pending'
+  | 'processing'
+  | 'out_for_delivery'
+  | 'delivered'
   | 'cancelled';
 
+export type PaymentStatus = 'pending' | 'paid' | 'failed';
+
 export interface OrderItem {
-  productId: string;
+  product_id: string;
   name: string;
-  nameAr?: string;
+  name_ar?: string;
   price: number;
   quantity: number;
   total: number;
@@ -73,21 +76,21 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  userId: string;
+  user_id: string;
   items: OrderItem[];
   subtotal: number;
-  deliveryFee: number;
+  delivery_fee: number;
   total: number;
   status: OrderStatus;
-  paymentMethod: string;
-  paymentStatus: 'pending' | 'paid' | 'failed';
+  payment_method: string;
+  payment_status: PaymentStatus;
   address: Address;
-  createdAt: string;
-  estimatedDelivery?: string;
+  created_at: string;
+  estimated_delivery?: string;
   notes?: string;
 }
 
-// Cart Types
+// 🛒 Cart Types
 export interface CartItem {
   product: Product;
   quantity: number;
@@ -96,12 +99,12 @@ export interface CartItem {
 export interface Cart {
   items: CartItem[];
   subtotal: number;
-  deliveryFee: number;
+  delivery_fee: number;
   total: number;
 }
 
-// Wishlist Types
+// 💖 Wishlist Types
 export interface WishlistItem {
   product: Product;
-  addedAt: string;
+  added_at: string;
 }

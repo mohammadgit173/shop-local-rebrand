@@ -7,9 +7,139 @@ export type Json =
   | Json[]
 
 export type Database = {
-  public: {
+  graphql_public: {
     Tables: {
       [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      categories: {
+        Row: {
+          id: string
+          image_path: string
+          name: string
+          name_ar: string | null
+        }
+        Insert: {
+          id?: string
+          image_path: string
+          name: string
+          name_ar?: string | null
+        }
+        Update: {
+          id?: string
+          image_path?: string
+          name?: string
+          name_ar?: string | null
+        }
+        Relationships: []
+      }
+      product_images: {
+        Row: {
+          id: string
+          path: string
+          product_id: string | null
+        }
+        Insert: {
+          id?: string
+          path: string
+          product_id?: string | null
+        }
+        Update: {
+          id?: string
+          path?: string
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          description_ar: string | null
+          featured: boolean | null
+          id: string
+          in_stock: boolean | null
+          name: string
+          name_ar: string | null
+          new: boolean | null
+          price: number
+          sale_price: number | null
+          stock_quantity: number | null
+          unit: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          description_ar?: string | null
+          featured?: boolean | null
+          id?: string
+          in_stock?: boolean | null
+          name: string
+          name_ar?: string | null
+          new?: boolean | null
+          price: number
+          sale_price?: number | null
+          stock_quantity?: number | null
+          unit?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          description_ar?: string | null
+          featured?: boolean | null
+          id?: string
+          in_stock?: boolean | null
+          name?: string
+          name_ar?: string | null
+          new?: boolean | null
+          price?: number
+          sale_price?: number | null
+          stock_quantity?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
