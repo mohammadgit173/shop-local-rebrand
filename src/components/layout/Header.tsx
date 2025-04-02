@@ -72,7 +72,7 @@ const Header = () => {
               className={isMobile ? "h-8 w-auto" : "h-10 w-auto"}
             />
             <span className="ml-2 text-xl font-bold text-brand-dark hidden md:block">
-              {language === 'en' ? storeConfig.name : 'شامي للتسوق'}
+              {language === 'en' ? storeConfig.name : 'شامي شوبينغ'}
             </span>
           </div>
 
