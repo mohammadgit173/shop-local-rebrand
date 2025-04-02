@@ -58,11 +58,11 @@ const CategoriesPage = () => {
 
   return (
     <Layout>
-      <div className={`container mx-auto px-4 ${isMobile ? 'py-4' : 'py-6'}`}>
-        <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold mb-6`}>{t('allCategories')}</h1>
+      <div className="container mx-auto px-4 pb-safe">
+        <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold my-4`}>{t('allCategories')}</h1>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearch} className="relative mb-6">
+        <form onSubmit={handleSearch} className="sticky top-0 z-10 bg-background pt-2 pb-4">
           <div className="relative flex items-center">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <Input
@@ -70,14 +70,17 @@ const CategoriesPage = () => {
               placeholder={t('searchForCategoriesOrProducts')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-10 h-12 w-full shadow-sm"
+              className="pl-10 pr-10 h-12 w-full shadow-sm text-base"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
             />
             {searchQuery && (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 mobile-touch-target"
                 onClick={clearSearch}
               >
                 <X className="h-5 w-5" />
@@ -97,7 +100,11 @@ const CategoriesPage = () => {
                 <p className="text-gray-500">
                   {searchResults.length + categoryResults.length} {t('resultsFound')} "{searchQuery}"
                 </p>
-                <Button variant="ghost" onClick={clearSearch}>
+                <Button 
+                  variant="ghost" 
+                  onClick={clearSearch}
+                  className="h-10 mobile-touch-target"
+                >
                   {t('backToCategories')}
                 </Button>
               </div>
