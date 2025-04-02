@@ -3,11 +3,12 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getCategoryById, getProductsByCategory, products as allProducts } from '@/data/mockData';
+import { getCategoryById, getProductsByCategory, products as allProducts, categories } from '@/data/mockData';
 import ProductList from '@/components/products/ProductList';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import CategoryList from '@/components/products/CategoryList';
 
 const CategoryPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,7 @@ const CategoryPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState<typeof allProducts>([]);
+  const [relatedCategoryResults, setRelatedCategoryResults] = useState<typeof categories>([]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,8 +32,9 @@ const CategoryPage = () => {
     }
     
     const query = searchQuery.toLowerCase();
+    
     // Search only within the current category products
-    const filtered = categoryProducts.filter(product => {
+    const filteredProducts = categoryProducts.filter(product => {
       const matchName = product.name.toLowerCase().includes(query);
       const matchNameAr = product.nameAr?.toLowerCase().includes(query) || false;
       const matchDescription = product.description.toLowerCase().includes(query);
@@ -40,7 +43,19 @@ const CategoryPage = () => {
       return matchName || matchNameAr || matchDescription || matchDescriptionAr;
     });
     
-    setSearchResults(filtered);
+    // Find related categories if there are search terms
+    const filteredCategories = categories.filter(cat => {
+      // Don't include the current category
+      if (cat.id === id) return false;
+      
+      const matchName = cat.name.toLowerCase().includes(query);
+      const matchNameAr = cat.nameAr?.toLowerCase().includes(query) || false;
+      
+      return matchName || matchNameAr;
+    });
+    
+    setSearchResults(filteredProducts);
+    setRelatedCategoryResults(filteredCategories);
     setShowSearchResults(true);
   };
   
@@ -111,7 +126,7 @@ const CategoryPage = () => {
             <div className="mb-4">
               <div className="flex justify-between items-center">
                 <p className="text-gray-500">
-                  {searchResults.length} {t('resultsFound')} "{searchQuery}"
+                  {searchResults.length + relatedCategoryResults.length} {t('resultsFound')} "{searchQuery}"
                 </p>
                 <Button variant="ghost" onClick={clearSearch}>
                   {t('backToProducts')}
@@ -119,11 +134,26 @@ const CategoryPage = () => {
               </div>
             </div>
             
-            {searchResults.length > 0 ? (
-              <ProductList products={searchResults} />
-            ) : (
+            {/* Product Results */}
+            {searchResults.length > 0 && (
+              <section className="py-4">
+                <h2 className="text-xl font-bold mb-4">{t('products')}</h2>
+                <ProductList products={searchResults} />
+              </section>
+            )}
+
+            {/* Related Categories Results */}
+            {relatedCategoryResults.length > 0 && (
+              <section className="py-4">
+                <h2 className="text-xl font-bold mb-4">{t('relatedCategories')}</h2>
+                <CategoryList categories={relatedCategoryResults} />
+              </section>
+            )}
+            
+            {/* No Results */}
+            {searchResults.length === 0 && relatedCategoryResults.length === 0 && (
               <div className="text-center py-10">
-                <p className="text-gray-500 mb-4">{t('noProductsFound')}</p>
+                <p className="text-gray-500 mb-4">{t('noResultsFound')}</p>
               </div>
             )}
           </>
