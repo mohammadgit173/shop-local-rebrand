@@ -193,7 +193,7 @@ export const enTranslations: LanguageTranslations = {
 // Arabic translations
 export const arTranslations: LanguageTranslations = {
   // Common
-  appName: "شامي للتسوق",
+  appName: "شامي شوبينغ",
   search: "بحث",
   cart: "سلة التسوق",
   account: "حسابي",
