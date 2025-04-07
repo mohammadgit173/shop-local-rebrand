@@ -130,7 +130,7 @@ const Header = () => {
               variant="ghost" 
               size="icon"
               className="h-10 w-10"
-              onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
+              onClick={() => navigate(isAuthenticated ? '/user/profile' : '/login')}
             >
               <User className="h-5 w-5" />
             </Button>

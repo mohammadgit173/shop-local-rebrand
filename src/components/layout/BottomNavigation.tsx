@@ -62,10 +62,10 @@ const BottomNavigation = () => {
         </button>
 
         <button
-          onClick={() => navigate('/profile')}
+          onClick={() => navigate('/user')}
           className={cn(
             "flex flex-col items-center justify-center flex-1 py-1 mobile-touch-target",
-            isActive('/profile') ? "text-brand-primary" : "text-gray-500"
+            isActive('/user') ? "text-brand-primary" : "text-gray-500"
           )}
         >
           <User className="h-6 w-6 mb-0.5" />
