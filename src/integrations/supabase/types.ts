@@ -7,35 +7,57 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       addresses: {
         Row: {
           address_line: string | null
-          city: string | null
           created_at: string | null
           id: string
-          state: string | null
+          latitude: number | null
+          longitude: number | null
           user_id: string | null
-          zip_code: string | null
         }
         Insert: {
           address_line?: string | null
-          city?: string | null
           created_at?: string | null
           id?: string
-          state?: string | null
+          latitude?: number | null
+          longitude?: number | null
           user_id?: string | null
-          zip_code?: string | null
         }
         Update: {
           address_line?: string | null
-          city?: string | null
           created_at?: string | null
           id?: string
-          state?: string | null
+          latitude?: number | null
+          longitude?: number | null
           user_id?: string | null
-          zip_code?: string | null
         }
         Relationships: [
           {
@@ -230,6 +252,30 @@ export type Database = {
           },
         ]
       }
+      store_config: {
+        Row: {
+          center_latitude: number
+          center_longitude: number
+          created_at: string | null
+          delivery_radius_km: number
+          id: string
+        }
+        Insert: {
+          center_latitude: number
+          center_longitude: number
+          created_at?: string | null
+          delivery_radius_km?: number
+          id?: string
+        }
+        Update: {
+          center_latitude?: number
+          center_longitude?: number
+          created_at?: string | null
+          delivery_radius_km?: number
+          id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -376,6 +422,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

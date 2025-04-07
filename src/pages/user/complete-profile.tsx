@@ -1,87 +1,87 @@
-
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
+import { haversineDistance } from "@/lib/location";
 import Layout from "@/components/layout/Layout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/contexts/UserContext";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { User, Phone, Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { Loader2, MapPin } from "lucide-react";
 
-const CompleteProfilePage = () => {
+export default function CompleteProfilePage() {
   const { user, refreshUserProfile } = useUser();
   const navigate = useNavigate();
-  const { toast } = useToast();
-
+  const [addressLine, setAddressLine] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!user) {
-      navigate("/login");
-    }
-  }, [user, navigate]);
+  const getCurrentPosition = (): Promise<GeolocationPosition> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation not supported"));
+      } else {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+        });
+      }
+    });
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!phone.trim()) {
-      setError("Phone number is required.");
-      return;
-    }
-
     setIsLoading(true);
     setError("");
 
     try {
-      // Check if user record already exists
-      const { data: existingUser } = await supabase
-        .from("users")
+      // 1. Get user's location
+      const position = await getCurrentPosition();
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      // 2. Get store center
+      const { data: storeData, error: storeError } = await supabase
+        .from("store_config")
         .select("*")
-        .eq("id", user?.id)
         .single();
 
-      if (existingUser) {
-        // Update existing user
-        const { error: updateError } = await supabase
-          .from("users")
-          .update({
-            full_name: fullName,
-            phone: phone,
-          })
-          .eq("id", user?.id);
+      if (storeError || !storeData) throw new Error("Store location not found.");
 
-        if (updateError) throw updateError;
-      } else {
-        // Insert new user
-        const { error: insertError } = await supabase
-          .from("users")
-          .insert({
-            id: user?.id,
-            full_name: fullName,
-            phone: phone,
-          });
+      const distance = haversineDistance(
+        storeData.center_latitude,
+        storeData.center_longitude,
+        latitude,
+        longitude
+      );
 
-        if (insertError) throw insertError;
+      console.log("User distance from store:", distance.toFixed(2), "km");
+
+      // 3. Check if within allowed radius
+      if (distance > storeData.delivery_radius_km) {
+        throw new Error(`Sorry, you are outside our delivery zone.`);
       }
 
-      // Refresh user profile
-      await refreshUserProfile();
-      
-      toast({
-        title: "Profile completed",
-        description: "Your profile has been successfully updated.",
+      // 4. Insert address
+      await supabase.from("addresses").insert({
+        user_id: user?.id,
+        address_line: addressLine,
+        latitude,
+        longitude,
       });
-      
+
+      // 5. Update user profile
+      await supabase.from("users").update({
+        full_name: fullName,
+        phone: phone,
+      }).eq("id", user?.id);
+
+      await refreshUserProfile();
       navigate("/");
-    } catch (error: any) {
-      console.error("Error saving profile:", error);
-      setError("Failed to save your profile. " + error.message);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to save profile.");
     } finally {
       setIsLoading(false);
     }
@@ -89,71 +89,58 @@ const CompleteProfilePage = () => {
 
   return (
     <Layout hideNav>
-      <div className="container mx-auto px-4 py-10 flex flex-col items-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">
-              Complete Your Profile
-            </CardTitle>
-          </CardHeader>
+      <div className="max-w-md mx-auto p-6 space-y-6">
+        <h1 className="text-2xl font-bold text-center">Complete Your Profile</h1>
 
-          <CardContent>
-            {error && (
-              <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm mb-4">
-                {error}
-              </div>
+        {error && <div className="bg-red-50 text-red-600 p-2 rounded">{error}</div>}
+
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Full Name</Label>
+            <Input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Your name"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Phone</Label>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+961 70 123 456"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Address Description</Label>
+            <Input
+              value={addressLine}
+              onChange={(e) => setAddressLine(e.target.value)}
+              placeholder="Near X Building..."
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-brand-primary hover:bg-brand-accent"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <MapPin className="h-4 w-4 mr-2" />
+                Save My Address
+              </>
             )}
-
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name (optional)</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="pl-10"
-                    placeholder="Your full name"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                    className="pl-10"
-                    placeholder="+1 (555) 123-4567"
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full mt-6"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : "Save and Continue"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+          </Button>
+        </form>
       </div>
     </Layout>
   );
-};
-
-export default CompleteProfilePage;
+}
