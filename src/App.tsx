@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AppProvider } from "@/contexts/AppContext";
-import { AddressProvider } from "@/contexts/AddressContext";
+import { UserProvider } from "@/contexts/UserContext";
 
 // Pages
 import Index from "@/pages/Index";
@@ -22,6 +22,7 @@ import ProfilePage from "@/pages/user/profile";
 import EditProfilePage from "@/pages/user/edit-profile";
 import OrdersPage from "@/pages/user/orders";
 import SettingsPage from "@/pages/user/settings";
+import CompleteProfilePage from "./pages/user/complete-profile";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +30,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <AppProvider>
-        <AddressProvider>
+        <UserProvider>
           <TooltipProvider>
             <Toaster />
             <SonnerToaster />
@@ -46,16 +47,24 @@ const App = () => (
 
                 {/* New User Pages */}
                 <Route path="/user/profile" element={<ProfilePage />} />
-                <Route path="/user/edit-profile" element={<EditProfilePage />} />
+                <Route
+                  path="/user/edit-profile"
+                  element={<EditProfilePage />}
+                />
                 <Route path="/user/orders" element={<OrdersPage />} />
                 <Route path="/user/settings" element={<SettingsPage />} />
+
+                <Route
+                  path="/complete-profile"
+                  element={<CompleteProfilePage />}
+                />
 
                 {/* Catch-all */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
           </TooltipProvider>
-        </AddressProvider>
+        </UserProvider>
       </AppProvider>
     </LanguageProvider>
   </QueryClientProvider>
