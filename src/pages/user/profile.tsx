@@ -1,6 +1,8 @@
+
 import { Button } from "@/components/ui/button";
 import { UserProfileCard } from "@/components/user/UserProfileCard";
 import { useNavigate } from "react-router-dom";
+import { SettingsItem } from "@/components/user/SettingsList";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
