@@ -1,17 +1,26 @@
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+
 export function UserProfileCard() {
-    return (
-      <div className="flex flex-col items-center bg-white p-6 rounded-xl shadow space-y-4">
+  return (
+    <Card className="border-none shadow-md">
+      <CardContent className="flex flex-col items-center p-6 space-y-4">
         {/* Avatar */}
-        <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-4xl">
-          👤
-        </div>
-  
+        <Avatar className="h-24 w-24 border-2 border-primary">
+          <AvatarImage src="/assets/profile-placeholder.jpg" alt="User profile" />
+          <AvatarFallback className="bg-muted">
+            <User className="h-12 w-12 text-muted-foreground" />
+          </AvatarFallback>
+        </Avatar>
+
         {/* Name and Email */}
         <div className="text-center">
           <h1 className="text-xl font-semibold">John Doe</h1>
-          <p className="text-gray-500 text-sm">john.doe@example.com</p>
+          <p className="text-muted-foreground text-sm">john.doe@example.com</p>
         </div>
-      </div>
-    );
-  }
-  
+      </CardContent>
+    </Card>
+  );
+}
