@@ -1,11 +1,13 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 type User = {
   id: string;
   email: string;
-  fullName?: string;
-  avatarUrl?: string;
+  full_name?: string;
+  avatar_url?: string;
+  phone?: string;
 };
 
 interface UserContextType {
@@ -19,30 +21,44 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  // Fetch user profile from Supabase Auth
+  // Fetch user profile from Supabase Auth and database
   const refreshUserProfile = async () => {
     console.log("[UserContext] Refreshing user profile...");
-    const { data, error } = await supabase.auth.getUser();
+    const { data: authData, error: authError } = await supabase.auth.getUser();
 
-    if (error) {
-      console.error("[UserContext] Error fetching user:", error);
+    if (authError) {
+      console.error("[UserContext] Error fetching auth user:", authError);
       setUser(null);
       return;
     }
 
-    if (data?.user) {
-      const supabaseUser = data.user;
+    if (authData?.user) {
+      const supabaseUser = authData.user;
 
+      // Fetch additional user data from the users table
+      const { data: profileData, error: profileError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", supabaseUser.id)
+        .single();
+
+      if (profileError && profileError.code !== "PGRST116") {
+        console.error("[UserContext] Error fetching user profile:", profileError);
+      }
+
+      // Combine auth data with profile data
       setUser({
         id: supabaseUser.id,
         email: supabaseUser.email || "",
-        fullName: supabaseUser.user_metadata?.full_name || "",
-        avatarUrl: supabaseUser.user_metadata?.avatar_url || "",
+        full_name: profileData?.full_name || supabaseUser.user_metadata?.full_name || "",
+        avatar_url: profileData?.avatar_url || supabaseUser.user_metadata?.avatar_url || "",
+        phone: profileData?.phone || supabaseUser.user_metadata?.phone || "",
       });
 
       console.log("[UserContext] User set:", {
         id: supabaseUser.id,
         email: supabaseUser.email,
+        full_name: profileData?.full_name,
       });
     } else {
       setUser(null);
@@ -55,22 +71,36 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     refreshUserProfile();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        console.log("[UserContext] Auth state changed:", _event);
+      async (event, session) => {
+        console.log("[UserContext] Auth state changed:", event);
 
         if (session?.user) {
           const supabaseUser = session.user;
 
+          // Fetch additional user data from the users table
+          const { data: profileData, error: profileError } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", supabaseUser.id)
+            .single();
+
+          if (profileError && profileError.code !== "PGRST116") {
+            console.error("[UserContext] Error fetching user profile:", profileError);
+          }
+
+          // Combine auth data with profile data
           setUser({
             id: supabaseUser.id,
             email: supabaseUser.email || "",
-            fullName: supabaseUser.user_metadata?.full_name || "",
-            avatarUrl: supabaseUser.user_metadata?.avatar_url || "",
+            full_name: profileData?.full_name || supabaseUser.user_metadata?.full_name || "",
+            avatar_url: profileData?.avatar_url || supabaseUser.user_metadata?.avatar_url || "",
+            phone: profileData?.phone || supabaseUser.user_metadata?.phone || "",
           });
 
           console.log("[UserContext] User updated from session:", {
             id: supabaseUser.id,
             email: supabaseUser.email,
+            full_name: profileData?.full_name,
           });
         } else {
           setUser(null);

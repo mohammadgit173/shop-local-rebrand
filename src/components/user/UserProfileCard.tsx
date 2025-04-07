@@ -1,3 +1,4 @@
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User as UserIcon } from "lucide-react"; // Renamed to avoid conflict
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +13,7 @@ export function UserProfileCard() {
         {/* Avatar */}
         <Avatar className="h-24 w-24 border-2 border-primary">
           <AvatarImage
-            src={user?.avatarUrl || "/assets/profile-placeholder.jpg"}
+            src={user?.avatar_url || "/assets/profile-placeholder.jpg"}
             alt="User profile"
           />
           <AvatarFallback className="bg-muted">
@@ -23,11 +24,16 @@ export function UserProfileCard() {
         {/* Name and Email */}
         <div className="text-center">
           <h1 className="text-xl font-semibold">
-            {user?.fullName || "Anonymous"}
+            {user?.full_name || "Anonymous"}
           </h1>
           <p className="text-muted-foreground text-sm">
             {user?.email || "No email available"}
           </p>
+          {user?.phone && (
+            <p className="text-muted-foreground text-sm mt-1">
+              {user.phone}
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

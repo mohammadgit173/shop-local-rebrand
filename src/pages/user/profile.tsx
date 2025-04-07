@@ -1,7 +1,7 @@
+
 import { Button } from "@/components/ui/button";
 import { UserProfileCard } from "@/components/user/UserProfileCard";
 import { useNavigate } from "react-router-dom";
-import { SettingsItem } from "@/components/user/SettingsList";
 import { 
   LogOut, 
   User,
@@ -11,15 +11,31 @@ import {
 import Layout from "@/components/layout/Layout";
 import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
+import { SettingsItem } from "@/components/user/SettingsList";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, setUser } = useUser();
+  const { toast } = useToast();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    navigate("/login");
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      navigate("/login");
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "There was a problem logging out. Please try again.",
+      });
+    }
   };
 
   if (!user) {
@@ -39,7 +55,7 @@ export default function ProfilePage() {
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* Profile Card */}
-        <UserProfileCard user={user} />
+        <UserProfileCard />
 
         {/* Account Actions */}
         <div className="bg-white rounded-xl shadow-md p-4 space-y-1">

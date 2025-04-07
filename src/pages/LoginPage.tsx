@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,10 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Mail, Lock, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { refreshUserProfile } = useUser();
+  const { user, refreshUserProfile } = useUser();
+  const { toast } = useToast();
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -18,6 +22,14 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [emailSent, setEmailSent] = useState(false);
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("[handleAuth] Form submitted");
@@ -25,65 +37,85 @@ const LoginPage = () => {
     setIsLoading(true);
     setError("");
   
-    if (mode === "login") {
-      const { data, error: loginError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-  
-      console.log("[handleAuth] Result:", { data, loginError });
-  
-      if (loginError) {
-        setError("Invalid credentials. Please try again.");
-      } else if (data?.session?.user) {
-        console.log("[handleAuth] Logged in session user:", data.session.user);
-  
-        // Step 1: Refresh context
-        console.log("[handleAuth] Refreshing user profile...");
-        await refreshUserProfile();
-  
-        // Step 2: Fetch profile phone manually
-        const { data: profileData, error: profileError } = await supabase
-          .from("users")
-          .select("phone")
-          .eq("id", data.session.user.id)
-          .single();
-  
-        console.log("[handleAuth] Profile data fetched:", { profileData, profileError });
-  
-        if (profileError) {
-          console.error("Profile fetch error:", profileError);
+    try {
+      if (mode === "login") {
+        const { data, error: loginError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+    
+        console.log("[handleAuth] Login result:", { data, loginError });
+    
+        if (loginError) {
+          setError("Invalid credentials. Please try again.");
+          return;
         }
-  
-        if (!profileData?.phone) {
-          console.log("[handleAuth] No phone found. Navigating to complete-profile...");
-          navigate("/complete-profile");
-        } else {
-          console.log("[handleAuth] Phone found. Navigating to home...");
-          navigate("/");
+    
+        if (data?.session?.user) {
+          console.log("[handleAuth] Logged in session user:", data.session.user);
+    
+          // Refresh context
+          console.log("[handleAuth] Refreshing user profile...");
+          await refreshUserProfile();
+    
+          // Check if profile exists in the users table
+          const { data: profileData, error: profileError } = await supabase
+            .from("users")
+            .select("phone")
+            .eq("id", data.session.user.id)
+            .single();
+    
+          console.log("[handleAuth] Profile data fetched:", { profileData, profileError });
+    
+          if (!profileData?.phone && profileError?.code === "PGRST116") {
+            console.log("[handleAuth] No profile found. Navigating to complete-profile...");
+            navigate("/complete-profile");
+          } else {
+            console.log("[handleAuth] Profile found. Navigating to home...");
+            toast({
+              title: "Welcome back!",
+              description: "You have successfully logged in.",
+            });
+            navigate("/");
+          }
         }
-      }
-    } else {
-      const { error: signupError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-  
-      if (signupError) {
-        setError(signupError.message);
       } else {
-        setEmailSent(true);
+        // Registration flow
+        const { data, error: signupError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+    
+        if (signupError) {
+          setError(signupError.message);
+          return;
+        }
+    
+        if (data?.user) {
+          // Some Supabase instances may require email confirmation
+          if (data.session) {
+            // Auto-sign in (email confirmation not required)
+            await refreshUserProfile();
+            navigate("/complete-profile");
+          } else {
+            // Email confirmation required
+            setEmailSent(true);
+          }
+        }
       }
+    } catch (error) {
+      console.error("Auth error:", error);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+      console.log("[handleAuth] Done");
     }
-  
-    setIsLoading(false);
-    console.log("[handleAuth] Done");
   };
-  
 
   const toggleMode = () => {
     setMode((prev) => (prev === "login" ? "register" : "login"));
     setError("");
+    setEmailSent(false);
   };
 
   return (
@@ -116,34 +148,49 @@ const LoginPage = () => {
                     </div>
                   )}
                   <form onSubmit={handleAuth} className="space-y-4">
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          className="pl-10"
+                          placeholder="you@example.com"
+                        />
+                      </div>
                     </div>
 
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                        <Input
+                          id="password"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          className="pl-10"
+                          placeholder="••••••••"
+                        />
+                      </div>
                     </div>
 
                     <Button
                       type="submit"
-                      className="w-full bg-brand-primary text-brand-dark hover:bg-brand-accent"
+                      className="w-full"
                       disabled={isLoading}
                     >
-                      {isLoading ? "Loading..." : mode === "login" ? "Login" : "Register"}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {mode === "login" ? "Logging in..." : "Registering..."}
+                        </>
+                      ) : mode === "login" ? "Login" : "Register"}
                     </Button>
                   </form>
 

@@ -1,12 +1,13 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft,
   User,
   Mail,
   Phone,
-  Camera
+  Camera,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,21 +15,85 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import Layout from "@/components/layout/Layout";
+import { useUser } from "@/contexts/UserContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
+  const { user, refreshUserProfile } = useUser();
+  const { toast } = useToast();
+  
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      setFullName(user.full_name || "");
+      setPhone(user.phone || "");
+    }
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    if (!user?.id) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "User not found. Please log in again.",
+      });
       setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Update user profile in the database
+      const { error } = await supabase
+        .from('users')
+        .update({
+          full_name: fullName,
+          phone: phone,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Refresh user profile data
+      await refreshUserProfile();
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully updated.",
+      });
+      
       navigate("/user/profile");
-    }, 1000);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: "There was a problem updating your profile. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (!user) {
+    return (
+      <Layout>
+        <div className="max-w-lg mx-auto px-4 py-6 text-center">
+          <h1 className="text-xl font-bold">Please log in to edit your profile.</h1>
+          <Button className="mt-6" onClick={() => navigate("/login")}>
+            Go to Login
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -50,7 +115,7 @@ export default function EditProfilePage() {
           <CardHeader className="flex items-center pt-6 pb-0">
             <div className="relative">
               <Avatar className="h-24 w-24 border-2 border-primary">
-                <AvatarImage src="/assets/profile-placeholder.jpg" alt="User profile" />
+                <AvatarImage src={user.avatar_url || "/assets/profile-placeholder.jpg"} alt="User profile" />
                 <AvatarFallback className="bg-muted">
                   <User className="h-12 w-12 text-muted-foreground" />
                 </AvatarFallback>
@@ -70,7 +135,8 @@ export default function EditProfilePage() {
                   <Input 
                     id="name" 
                     placeholder="Your name" 
-                    defaultValue="John Doe"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     className="pl-10" 
                   />
                 </div>
@@ -84,8 +150,9 @@ export default function EditProfilePage() {
                     id="email" 
                     type="email" 
                     placeholder="Your email" 
-                    defaultValue="john.doe@example.com"
-                    className="pl-10" 
+                    value={user.email}
+                    disabled
+                    className="pl-10 opacity-70" 
                   />
                 </div>
               </div>
@@ -98,7 +165,8 @@ export default function EditProfilePage() {
                     id="phone" 
                     type="tel" 
                     placeholder="Your phone number" 
-                    defaultValue="+1 (555) 123-4567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                     className="pl-10" 
                   />
                 </div>
@@ -111,7 +179,12 @@ export default function EditProfilePage() {
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? "Saving..." : "Save Changes"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : "Save Changes"}
               </Button>
             </CardFooter>
           </form>
