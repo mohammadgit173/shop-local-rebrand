@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState } from "react";
 import { Cart, CartItem, Product, WishlistItem } from "@/types";
 import { storeConfig } from "@/config/storeConfig";
@@ -20,7 +21,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const initialCart: Cart = {
   items: [],
   subtotal: 0,
-  deliveryFee: storeConfig.deliverySettings.standardDeliveryFee,
+  delivery_fee: storeConfig.deliverySettings.standardDeliveryFee,
   total: 0,
 };
 
@@ -32,19 +33,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Calculate cart totals
   const calculateCartTotals = (items: CartItem[]): Cart => {
     const subtotal = items.reduce(
-      (sum, item) => sum + (item.product.salePrice || item.product.price) * item.quantity,
+      (sum, item) => sum + (item.product.sale_price || item.product.price) * item.quantity,
       0
     );
 
-    const deliveryFee = subtotal >= storeConfig.deliverySettings.freeDeliveryThreshold
+    const delivery_fee = subtotal >= storeConfig.deliverySettings.freeDeliveryThreshold
       ? 0
       : storeConfig.deliverySettings.standardDeliveryFee;
 
     return {
       items,
       subtotal,
-      deliveryFee,
-      total: subtotal + deliveryFee,
+      delivery_fee,
+      total: subtotal + delivery_fee,
     };
   };
 
@@ -148,7 +149,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...prevWishlist,
         {
           product,
-          addedAt: new Date().toISOString(),
+          added_at: new Date().toISOString(),
         },
       ];
     });

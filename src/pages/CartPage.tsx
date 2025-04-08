@@ -54,7 +54,7 @@ const CartPage = () => {
                   >
                     <img 
                       src={item.product.images[0]} 
-                      alt={language === 'en' ? item.product.name : item.product.nameAr || item.product.name}
+                      alt={language === 'en' ? item.product.name : item.product.name_ar || item.product.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -63,15 +63,15 @@ const CartPage = () => {
                       className="font-medium cursor-pointer"
                       onClick={() => navigate(`/product/${item.product.id}`)}
                     >
-                      {language === 'en' ? item.product.name : item.product.nameAr || item.product.name}
+                      {language === 'en' ? item.product.name : item.product.name_ar || item.product.name}
                     </h3>
                     <p className="text-sm text-gray-500">{item.product.unit}</p>
                     <div className="flex items-center justify-between mt-2">
                       <div>
-                        {item.product.salePrice ? (
+                        {item.product.sale_price ? (
                           <div className="flex flex-col">
                             <span className="font-bold">
-                              {formatPrice(item.product.salePrice * item.quantity)}
+                              {formatPrice(item.product.sale_price * item.quantity)}
                             </span>
                             <span className="text-xs text-gray-500 line-through">
                               {formatPrice(item.product.price * item.quantity)}
@@ -131,8 +131,8 @@ const CartPage = () => {
             <div className="flex justify-between">
               <span className="text-gray-500">{t('delivery')}</span>
               <span>
-                {cart.deliveryFee > 0 
-                  ? formatPrice(cart.deliveryFee)
+                {cart.delivery_fee > 0 
+                  ? formatPrice(cart.delivery_fee)
                   : t('free')}
               </span>
             </div>

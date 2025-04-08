@@ -12,30 +12,27 @@ export type Database = {
       addresses: {
         Row: {
           address_line: string | null
-          city: string | null
           created_at: string | null
           id: string
-          state: string | null
+          latitude: number | null
+          longitude: number | null
           user_id: string | null
-          zip_code: string | null
         }
         Insert: {
           address_line?: string | null
-          city?: string | null
           created_at?: string | null
           id?: string
-          state?: string | null
+          latitude?: number | null
+          longitude?: number | null
           user_id?: string | null
-          zip_code?: string | null
         }
         Update: {
           address_line?: string | null
-          city?: string | null
           created_at?: string | null
           id?: string
-          state?: string | null
+          latitude?: number | null
+          longitude?: number | null
           user_id?: string | null
-          zip_code?: string | null
         }
         Relationships: [
           {
@@ -229,6 +226,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      store_config: {
+        Row: {
+          center_latitude: number
+          center_longitude: number
+          created_at: string | null
+          delivery_radius_km: number
+          id: string
+        }
+        Insert: {
+          center_latitude: number
+          center_longitude: number
+          created_at?: string | null
+          delivery_radius_km?: number
+          id?: string
+        }
+        Update: {
+          center_latitude?: number
+          center_longitude?: number
+          created_at?: string | null
+          delivery_radius_km?: number
+          id?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {
