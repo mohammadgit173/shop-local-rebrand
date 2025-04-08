@@ -9,10 +9,6 @@ export interface Address {
   label: string;
   full_address: string;
   city: string;
-  area?: string;
-  building?: string;
-  floor?: string;
-  landmark?: string;
   notes?: string;
   is_default: boolean;
   coordinates?: {
@@ -39,12 +35,12 @@ const AddressContext = createContext<AddressContextType | undefined>(undefined);
 
 // Default center of delivery area (will be fetched from database in production)
 const DEFAULT_DELIVERY_CENTER = {
-  latitude: 25.276987,
-  longitude: 55.296249
+  latitude: 33.8938,
+  longitude: 35.5018
 };
 
 // Default delivery radius in kilometers
-const DEFAULT_DELIVERY_RADIUS = 10;
+const DEFAULT_DELIVERY_RADIUS = 15;
 
 export const AddressProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useUser();
@@ -73,10 +69,10 @@ export const AddressProvider = ({ children }: { children: React.ReactNode }) => 
   const checkDeliveryRadius = async (latitude: number, longitude: number): Promise<boolean> => {
     try {
       // In production, fetch delivery center and radius from database
-      // const { data } = await supabase.from('delivery_settings').select('*').single();
+      // const { data } = await supabase.from('store_config').select('*').single();
       // if (data) {
-      //   setDeliveryCenter({ latitude: data.center_lat, longitude: data.center_lng });
-      //   setDeliveryRadius(data.radius);
+      //   setDeliveryCenter({ latitude: data.center_latitude, longitude: data.center_longitude });
+      //   setDeliveryRadius(data.delivery_radius_km);
       // }
 
       const distance = calculateDistance(
@@ -118,6 +114,44 @@ export const AddressProvider = ({ children }: { children: React.ReactNode }) => 
     });
   };
 
+  // Convert database address format to application address format
+  const convertDbToAddress = (dbAddress: any): Address => {
+    // Extract latitude and longitude if they exist
+    const coordinates = dbAddress.latitude && dbAddress.longitude 
+      ? { latitude: Number(dbAddress.latitude), longitude: Number(dbAddress.longitude) }
+      : undefined;
+    
+    // Construct the address object with minimum required fields
+    return {
+      id: dbAddress.id,
+      user_id: dbAddress.user_id,
+      label: dbAddress.label || 'Home',
+      full_address: dbAddress.address_line || '',
+      city: dbAddress.city || '',
+      notes: dbAddress.notes,
+      is_default: !!dbAddress.is_default,
+      coordinates
+    };
+  };
+
+  // Convert application address format to database format
+  const convertAddressToDb = (address: Partial<Address>) => {
+    const dbAddress: any = {
+      user_id: address.user_id,
+      address_line: address.full_address,
+      city: address.city,
+      notes: address.notes
+    };
+
+    // Add coordinates if they exist
+    if (address.coordinates) {
+      dbAddress.latitude = address.coordinates.latitude;
+      dbAddress.longitude = address.coordinates.longitude;
+    }
+
+    return dbAddress;
+  };
+
   // Load addresses from database when user changes
   useEffect(() => {
     const loadAddresses = async () => {
@@ -133,23 +167,33 @@ export const AddressProvider = ({ children }: { children: React.ReactNode }) => 
         const { data, error } = await supabase
           .from('addresses')
           .select('*')
-          .eq('user_id', user.id)
-          .order('is_default', { ascending: false });
+          .eq('user_id', user.id);
 
         if (error) throw error;
 
-        setAddresses(data || []);
-        
-        // Set default address as selected
-        const defaultAddress = data?.find(addr => addr.is_default) || data?.[0] || null;
-        setSelectedAddress(defaultAddress);
-        
-        // Check delivery radius if coordinates exist
-        if (defaultAddress?.coordinates) {
-          checkDeliveryRadius(
-            defaultAddress.coordinates.latitude,
-            defaultAddress.coordinates.longitude
-          );
+        if (data && data.length > 0) {
+          // Convert database addresses to application addresses
+          const appAddresses = data.map(convertDbToAddress);
+          
+          // Sort by is_default (default addresses first)
+          appAddresses.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+          
+          setAddresses(appAddresses);
+          
+          // Set default address as selected
+          const defaultAddress = appAddresses.find(addr => addr.is_default) || appAddresses[0];
+          setSelectedAddress(defaultAddress);
+          
+          // Check delivery radius if coordinates exist
+          if (defaultAddress?.coordinates) {
+            checkDeliveryRadius(
+              defaultAddress.coordinates.latitude,
+              defaultAddress.coordinates.longitude
+            );
+          }
+        } else {
+          setAddresses([]);
+          setSelectedAddress(null);
         }
       } catch (error) {
         console.error("Error loading addresses:", error);
@@ -169,33 +213,37 @@ export const AddressProvider = ({ children }: { children: React.ReactNode }) => 
       // Check if this is the first address (make it default)
       const isDefault = addresses.length === 0;
       
-      const newAddress: Omit<Address, "id"> = {
-        ...addressData,
+      // Create database format
+      const dbAddress = {
+        ...convertAddressToDb(addressData as Partial<Address>),
         user_id: user.id,
         is_default: isDefault
       };
       
       const { data, error } = await supabase
         .from('addresses')
-        .insert(newAddress)
+        .insert(dbAddress)
         .select()
         .single();
         
       if (error) throw error;
       
       if (data) {
-        setAddresses(prev => [...prev, data]);
+        // Convert back to application format
+        const newAddress = convertDbToAddress(data);
+        
+        setAddresses(prev => [...prev, newAddress]);
         
         // If this is the first address, set it as selected
         if (isDefault) {
-          setSelectedAddress(data);
+          setSelectedAddress(newAddress);
         }
         
         // Check delivery radius if coordinates exist
-        if (data.coordinates) {
+        if (newAddress.coordinates) {
           checkDeliveryRadius(
-            data.coordinates.latitude,
-            data.coordinates.longitude
+            newAddress.coordinates.latitude,
+            newAddress.coordinates.longitude
           );
         }
       }
@@ -211,9 +259,17 @@ export const AddressProvider = ({ children }: { children: React.ReactNode }) => 
     
     setIsLoading(true);
     try {
+      // Convert to database format
+      const dbAddress = convertAddressToDb(updated);
+      
+      // Keep is_default status
+      if (updated.is_default) {
+        dbAddress.is_default = true;
+      }
+      
       const { error } = await supabase
         .from('addresses')
-        .update(updated)
+        .update(dbAddress)
         .eq('id', updated.id)
         .eq('user_id', user.id);
         

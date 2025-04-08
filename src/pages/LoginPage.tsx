@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
@@ -12,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { user, isLoading: userLoading, refreshUserProfile } = useUser();
+  const { user, isLoading: userLoading } = useUser();
   const { toast } = useToast();
 
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -22,9 +23,10 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   
-  // Redirect if already logged in
+  // Redirect if already logged in - fixed the infinite loop issue
   useEffect(() => {
     if (user && !userLoading) {
+      // Only redirect if we have a user and we're not loading
       navigate("/");
     }
   }, [user, userLoading, navigate]);
@@ -55,31 +57,14 @@ const LoginPage = () => {
           // Let the auth state listener in UserContext handle the session update
           // This avoids race conditions between manual updates and listener updates
           
-          // Wait a moment for the auth state to propagate
-          setTimeout(async () => {
-            // Check if profile exists in the users table
-            const { data: profileData, error: profileError } = await supabase
-              .from("users")
-              .select("phone")
-              .eq("id", data.session.user.id)
-              .single();
-      
-            console.log("[handleAuth] Profile data fetched:", { profileData, profileError });
-      
-            if (!profileData?.phone && profileError?.code === "PGRST116") {
-              console.log("[handleAuth] No profile found. Navigating to complete-profile...");
-              navigate("/complete-profile");
-            } else {
-              console.log("[handleAuth] Profile found. Navigating to home...");
-              toast({
-                title: "Welcome back!",
-                description: "You have successfully logged in.",
-              });
-              navigate("/");
-            }
-            
-            setIsLoading(false);
-          }, 500);
+          // Success message
+          toast({
+            title: "Welcome back!",
+            description: "You have successfully logged in.",
+          });
+          
+          setIsLoading(false);
+          navigate("/");
         }
       } else {
         // Registration flow
@@ -98,11 +83,12 @@ const LoginPage = () => {
           // Some Supabase instances may require email confirmation
           if (data.session) {
             // Auto-sign in (email confirmation not required)
-            // Let the auth state listener handle the session update
-            setTimeout(() => {
-              navigate("/complete-profile");
-              setIsLoading(false);
-            }, 500);
+            toast({
+              title: "Account created!",
+              description: "You have successfully registered and logged in.",
+            });
+            navigate("/complete-profile");
+            setIsLoading(false);
           } else {
             // Email confirmation required
             setEmailSent(true);
@@ -125,6 +111,21 @@ const LoginPage = () => {
     setEmailSent(false);
   };
 
+  // Show loading state while checking user authentication
+  if (userLoading) {
+    return (
+      <Layout hideNav>
+        <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-screen">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Checking authentication status...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // If user is already logged in, this should not render due to the useEffect redirect
   return (
     <Layout hideNav>
       <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-screen">
@@ -190,9 +191,9 @@ const LoginPage = () => {
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={isLoading || userLoading}
+                      disabled={isLoading}
                     >
-                      {isLoading || userLoading ? (
+                      {isLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           {mode === "login" ? "Logging in..." : "Registering..."}

@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { Cart, CartItem, Product, WishlistItem } from "@/types";
 import { storeConfig } from "@/config/storeConfig";
 import { useToast } from "@/components/ui/use-toast";
@@ -28,6 +28,7 @@ const initialCart: Cart = {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<Cart>(initialCart);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
 
   // Calculate cart totals
@@ -49,36 +50,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
-  // Load cart and wishlist from localStorage on startup
-  React.useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      try {
+  // Load cart from localStorage on startup
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
         const parsedCart = JSON.parse(savedCart);
         setCart(parsedCart);
-      } catch (error) {
-        console.error("Failed to parse cart from localStorage", error);
       }
-    }
 
-    const savedWishlist = localStorage.getItem("wishlist");
-    if (savedWishlist) {
-      try {
+      const savedWishlist = localStorage.getItem("wishlist");
+      if (savedWishlist) {
         const parsedWishlist = JSON.parse(savedWishlist);
         setWishlist(parsedWishlist);
-      } catch (error) {
-        console.error("Failed to parse wishlist from localStorage", error);
       }
+    } catch (error) {
+      console.error("Failed to parse saved data from localStorage", error);
+      // Reset the cart if there's an error
+      localStorage.removeItem("cart");
+      localStorage.removeItem("wishlist");
     }
   }, []);
 
   // Save cart to localStorage whenever it changes
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
   // Save wishlist to localStorage whenever it changes
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem("wishlist", JSON.stringify(wishlist));
   }, [wishlist]);
 
@@ -132,6 +132,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => {
     setCart(initialCart);
+    localStorage.removeItem('cart');
   };
 
   // Wishlist operations
@@ -166,7 +167,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         cart,
         wishlist,
-        isAuthenticated: false, // We don't manage auth here anymore
+        isAuthenticated,
         addToCart,
         removeFromCart,
         updateCartItemQuantity,

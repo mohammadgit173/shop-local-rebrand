@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAddresses } from "@/contexts/AddressContext";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { MapPin, Home, Building, Navigation, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface AddressFormProps {
   onComplete?: () => void;
@@ -21,10 +23,6 @@ const AddressForm = ({ onComplete, existingAddress }: AddressFormProps) => {
   const [label, setLabel] = useState(existingAddress?.label || "Home");
   const [fullAddress, setFullAddress] = useState(existingAddress?.full_address || "");
   const [city, setCity] = useState(existingAddress?.city || "");
-  const [area, setArea] = useState(existingAddress?.area || "");
-  const [building, setBuilding] = useState(existingAddress?.building || "");
-  const [floor, setFloor] = useState(existingAddress?.floor || "");
-  const [landmark, setLandmark] = useState(existingAddress?.landmark || "");
   const [notes, setNotes] = useState(existingAddress?.notes || "");
   const [coordinates, setCoordinates] = useState(existingAddress?.coordinates || null);
   
@@ -105,10 +103,6 @@ const AddressForm = ({ onComplete, existingAddress }: AddressFormProps) => {
         label,
         full_address: fullAddress,
         city,
-        area,
-        building,
-        floor,
-        landmark,
         notes,
         coordinates: useCurrentLocation ? coordinates : null
       };
@@ -154,88 +148,47 @@ const AddressForm = ({ onComplete, existingAddress }: AddressFormProps) => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="label">Address Label</Label>
-            <div className="relative">
-              <Home className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              <Input
-                id="label"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                className="pl-10"
-                placeholder="Home, Work, etc."
-              />
-            </div>
+            <Label>Address Type</Label>
+            <RadioGroup 
+              value={label} 
+              onValueChange={setLabel}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Home" id="home" />
+                <Label htmlFor="home" className="cursor-pointer">Home</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Work" id="work" />
+                <Label htmlFor="work" className="cursor-pointer">Work</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Other" id="other" />
+                <Label htmlFor="other" className="cursor-pointer">Other</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="city">City/Town</Label>
+            <Input
+              id="city"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              required
+              placeholder="e.g., Beirut, Tripoli, Sidon"
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="fullAddress">Full Address</Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              <Input
-                id="fullAddress"
-                value={fullAddress}
-                onChange={(e) => setFullAddress(e.target.value)}
-                required
-                className="pl-10"
-                placeholder="Street address"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                required
-                placeholder="City"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="area">Area/District</Label>
-              <Input
-                id="area"
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
-                placeholder="Area or district"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="building">Building/House</Label>
-              <div className="relative">
-                <Building className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                <Input
-                  id="building"
-                  value={building}
-                  onChange={(e) => setBuilding(e.target.value)}
-                  className="pl-10"
-                  placeholder="Building name/number"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="floor">Floor/Apartment</Label>
-              <Input
-                id="floor"
-                value={floor}
-                onChange={(e) => setFloor(e.target.value)}
-                placeholder="Floor, apartment #"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="landmark">Landmark</Label>
-            <Input
-              id="landmark"
-              value={landmark}
-              onChange={(e) => setLandmark(e.target.value)}
-              placeholder="Nearby landmark"
+            <Textarea
+              id="fullAddress"
+              value={fullAddress}
+              onChange={(e) => setFullAddress(e.target.value)}
+              required
+              rows={3}
+              placeholder="Street name, building name, floor, apartment number"
             />
           </div>
 
@@ -245,7 +198,7 @@ const AddressForm = ({ onComplete, existingAddress }: AddressFormProps) => {
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional delivery instructions"
+              placeholder="Additional delivery instructions, landmarks nearby"
               rows={2}
             />
           </div>

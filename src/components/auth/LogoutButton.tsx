@@ -16,7 +16,15 @@ import {
 import { LogOut, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-const LogoutButton = ({ variant = "default", size = "default" }) => {
+type ButtonVariant = "link" | "default" | "destructive" | "outline" | "secondary" | "ghost";
+type ButtonSize = "default" | "sm" | "lg" | "icon";
+
+interface LogoutButtonProps {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+}
+
+const LogoutButton = ({ variant = "default", size = "default" }: LogoutButtonProps) => {
   const { logout, isLoading } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -54,8 +62,8 @@ const LogoutButton = ({ variant = "default", size = "default" }) => {
   return (
     <>
       <Button
-        variant={variant as "link" | "default" | "destructive" | "outline" | "secondary" | "ghost"}
-        size={size as "default" | "sm" | "lg" | "icon"}
+        variant={variant}
+        size={size}
         onClick={() => setShowConfirmDialog(true)}
         disabled={isLoading || isLoggingOut}
       >
