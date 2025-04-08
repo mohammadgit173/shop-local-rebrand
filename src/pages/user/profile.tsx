@@ -1,12 +1,11 @@
-
 import { Button } from "@/components/ui/button";
 import { UserProfileCard } from "@/components/user/UserProfileCard";
 import { useNavigate } from "react-router-dom";
-import { 
-  LogOut, 
+import {
+  LogOut,
   User,
   ShoppingBag,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { useUser } from "@/contexts/UserContext";
@@ -22,12 +21,11 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      setUser(null);
       toast({
         title: "Logged out",
         description: "You have been successfully logged out.",
       });
-      navigate("/login");
+      window.location.reload(); // <--- FORCE reload the app to refresh context
     } catch (error) {
       console.error("Error logging out:", error);
       toast({
@@ -42,7 +40,9 @@ export default function ProfilePage() {
     return (
       <Layout>
         <div className="max-w-lg mx-auto px-4 py-6 text-center">
-          <h1 className="text-xl font-bold">Please log in to view your profile.</h1>
+          <h1 className="text-xl font-bold">
+            Please log in to view your profile.
+          </h1>
           <Button className="mt-6" onClick={() => navigate("/login")}>
             Go to Login
           </Button>
@@ -61,20 +61,20 @@ export default function ProfilePage() {
         <div className="bg-white rounded-xl shadow-md p-4 space-y-1">
           <h2 className="text-lg font-semibold px-1 mb-3">My Account</h2>
           <div className="flex flex-col">
-            <SettingsItem 
-              label="Edit Profile" 
+            <SettingsItem
+              label="Edit Profile"
               icon={User}
-              onClick={() => navigate("/user/edit-profile")} 
+              onClick={() => navigate("/user/edit-profile")}
             />
-            <SettingsItem 
-              label="My Orders" 
+            <SettingsItem
+              label="My Orders"
               icon={ShoppingBag}
-              onClick={() => navigate("/user/orders")} 
+              onClick={() => navigate("/user/orders")}
             />
-            <SettingsItem 
-              label="Settings" 
+            <SettingsItem
+              label="Settings"
               icon={SettingsIcon}
-              onClick={() => navigate("/user/settings")} 
+              onClick={() => navigate("/user/settings")}
             />
           </div>
         </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
@@ -13,7 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { user, refreshUserProfile } = useUser();
+  const { user, isLoading: userLoading, refreshUserProfile } = useUser();
   const { toast } = useToast();
 
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -25,10 +24,10 @@ const LoginPage = () => {
   
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
+    if (user && !userLoading) {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, userLoading, navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,36 +47,39 @@ const LoginPage = () => {
     
         if (loginError) {
           setError("Invalid credentials. Please try again.");
+          setIsLoading(false);
           return;
         }
     
-        if (data?.session?.user) {
-          console.log("[handleAuth] Logged in session user:", data.session.user);
-    
-          // Refresh context
-          console.log("[handleAuth] Refreshing user profile...");
-          await refreshUserProfile();
-    
-          // Check if profile exists in the users table
-          const { data: profileData, error: profileError } = await supabase
-            .from("users")
-            .select("phone")
-            .eq("id", data.session.user.id)
-            .single();
-    
-          console.log("[handleAuth] Profile data fetched:", { profileData, profileError });
-    
-          if (!profileData?.phone && profileError?.code === "PGRST116") {
-            console.log("[handleAuth] No profile found. Navigating to complete-profile...");
-            navigate("/complete-profile");
-          } else {
-            console.log("[handleAuth] Profile found. Navigating to home...");
-            toast({
-              title: "Welcome back!",
-              description: "You have successfully logged in.",
-            });
-            navigate("/");
-          }
+        if (data?.session) {
+          // Let the auth state listener in UserContext handle the session update
+          // This avoids race conditions between manual updates and listener updates
+          
+          // Wait a moment for the auth state to propagate
+          setTimeout(async () => {
+            // Check if profile exists in the users table
+            const { data: profileData, error: profileError } = await supabase
+              .from("users")
+              .select("phone")
+              .eq("id", data.session.user.id)
+              .single();
+      
+            console.log("[handleAuth] Profile data fetched:", { profileData, profileError });
+      
+            if (!profileData?.phone && profileError?.code === "PGRST116") {
+              console.log("[handleAuth] No profile found. Navigating to complete-profile...");
+              navigate("/complete-profile");
+            } else {
+              console.log("[handleAuth] Profile found. Navigating to home...");
+              toast({
+                title: "Welcome back!",
+                description: "You have successfully logged in.",
+              });
+              navigate("/");
+            }
+            
+            setIsLoading(false);
+          }, 500);
         }
       } else {
         // Registration flow
@@ -88,6 +90,7 @@ const LoginPage = () => {
     
         if (signupError) {
           setError(signupError.message);
+          setIsLoading(false);
           return;
         }
     
@@ -95,20 +98,24 @@ const LoginPage = () => {
           // Some Supabase instances may require email confirmation
           if (data.session) {
             // Auto-sign in (email confirmation not required)
-            await refreshUserProfile();
-            navigate("/complete-profile");
+            // Let the auth state listener handle the session update
+            setTimeout(() => {
+              navigate("/complete-profile");
+              setIsLoading(false);
+            }, 500);
           } else {
             // Email confirmation required
             setEmailSent(true);
+            setIsLoading(false);
           }
+        } else {
+          setIsLoading(false);
         }
       }
     } catch (error) {
       console.error("Auth error:", error);
       setError("An unexpected error occurred. Please try again.");
-    } finally {
       setIsLoading(false);
-      console.log("[handleAuth] Done");
     }
   };
 
@@ -183,9 +190,9 @@ const LoginPage = () => {
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={isLoading}
+                      disabled={isLoading || userLoading}
                     >
-                      {isLoading ? (
+                      {isLoading || userLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           {mode === "login" ? "Logging in..." : "Registering..."}

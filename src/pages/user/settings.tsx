@@ -1,124 +1,102 @@
-
-import { useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Moon,
-  Sun,
-  Bell,
-  BellOff,
-  LogOut,
-  Languages,
-  Lock,
-  HelpCircle
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { useUser } from "@/contexts/UserContext";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, User, Mail, Phone, Settings, LogOut } from "lucide-react";
+import LogoutButton from "@/components/auth/LogoutButton";
 
-export default function SettingsPage() {
+const SettingsPage = () => {
+  const { user, isLoading, logout } = useUser();
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(false);
-  const [notifications, setNotifications] = useState(true);
-  
+
+  useEffect(() => {
+    if (!user && !isLoading) {
+      navigate("/login");
+    }
+  }, [user, isLoading, navigate]);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-10 flex flex-col items-center justify-center min-h-screen">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Loading settings...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="max-w-lg mx-auto px-4 py-6">
-        {/* Header with back button */}
-        <div className="flex items-center mb-6">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => navigate("/user/profile")}
-            className="mr-2"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-semibold">Settings</h1>
+      <div className="container mx-auto px-4 py-6">
+        <h1 className="text-2xl font-bold mb-6">Settings</h1>
+        
+        <div className="grid gap-6">
+          {/* Account Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Account Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Email</div>
+                <div className="flex items-center">
+                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span>{user?.email}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Full Name</div>
+                <div className="flex items-center">
+                  <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span>{user?.full_name || "Not set"}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Phone Number</div>
+                <div className="flex items-center">
+                  <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span>{user?.phone || "Not set"}</span>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate("/user/edit-profile")}
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Logout */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Session</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Logging out will end your current session and you'll need to sign in again to access your account.
+              </p>
+              <LogoutButton />
+            </CardContent>
+          </Card>
         </div>
-        
-        <Card className="border-none shadow-md mb-6">
-          <CardContent className="p-0">
-            <div className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {darkMode ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-primary" />}
-                <Label htmlFor="dark-mode" className="font-medium">
-                  Dark Mode
-                </Label>
-              </div>
-              <Switch
-                id="dark-mode"
-                checked={darkMode}
-                onCheckedChange={setDarkMode}
-              />
-            </div>
-            
-            <Separator />
-            
-            <div className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {notifications ? <Bell className="h-5 w-5 text-primary" /> : <BellOff className="h-5 w-5 text-primary" />}
-                <Label htmlFor="notifications" className="font-medium">
-                  Notifications
-                </Label>
-              </div>
-              <Switch
-                id="notifications"
-                checked={notifications}
-                onCheckedChange={setNotifications}
-              />
-            </div>
-            
-            <Separator />
-            
-            <div className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Languages className="h-5 w-5 text-primary" />
-                <Label className="font-medium">
-                  Language
-                </Label>
-              </div>
-              <Button variant="ghost" size="sm" className="text-sm">
-                English (US)
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-none shadow-md mb-6">
-          <CardContent className="p-0">
-            <div className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <Lock className="h-5 w-5 text-primary" />
-                <span className="font-medium">Change Password</span>
-              </div>
-              <ArrowLeft className="h-5 w-5 text-gray-400 rotate-180" />
-            </div>
-            
-            <Separator />
-            
-            <div className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <HelpCircle className="h-5 w-5 text-primary" />
-                <span className="font-medium">Help & Support</span>
-              </div>
-              <ArrowLeft className="h-5 w-5 text-gray-400 rotate-180" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Button
-          variant="outline"
-          className="w-full border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
-          onClick={() => console.log("Handle logout here")}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
       </div>
     </Layout>
   );
-}
+};
+
+export default SettingsPage;
