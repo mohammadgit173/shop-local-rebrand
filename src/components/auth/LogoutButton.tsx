@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
@@ -53,8 +54,8 @@ const LogoutButton = ({ variant = "default", size = "default" }) => {
   return (
     <>
       <Button
-        variant={variant}
-        size={size}
+        variant={variant as "link" | "default" | "destructive" | "outline" | "secondary" | "ghost"}
+        size={size as "default" | "sm" | "lg" | "icon"}
         onClick={() => setShowConfirmDialog(true)}
         disabled={isLoading || isLoggingOut}
       >
