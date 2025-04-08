@@ -1,12 +1,13 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { Cart, CartItem, Product, WishlistItem } from "@/types";
-import { storeConfig } from "@/config/storeConfig";
-import { useToast } from "@/components/ui/use-toast";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Cart, CartItem, Product, User, WishlistItem } from '../types';
+import { storeConfig } from '../config/storeConfig';
+import { useToast } from '@/components/ui/use-toast';
 
 interface AppContextType {
   cart: Cart;
   wishlist: WishlistItem[];
+  user: User | null;
   isAuthenticated: boolean;
   addToCart: (product: Product, quantity: number) => void;
   removeFromCart: (productId: string) => void;
@@ -14,6 +15,8 @@ interface AppContextType {
   clearCart: () => void;
   addToWishlist: (product: Product) => void;
   removeFromWishlist: (productId: string) => void;
+  login: (user: User) => void;
+  logout: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -21,82 +24,106 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const initialCart: Cart = {
   items: [],
   subtotal: 0,
-  delivery_fee: storeConfig.deliverySettings.standardDeliveryFee,
+  deliveryFee: storeConfig.deliverySettings.standardDeliveryFee,
   total: 0,
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<Cart>(initialCart);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   // Calculate cart totals
   const calculateCartTotals = (items: CartItem[]): Cart => {
     const subtotal = items.reduce(
-      (sum, item) => sum + (item.product.sale_price || item.product.price) * item.quantity,
+      (sum, item) => sum + (item.product.salePrice || item.product.price) * item.quantity,
       0
     );
-
-    const delivery_fee = subtotal >= storeConfig.deliverySettings.freeDeliveryThreshold
+    
+    // Determine delivery fee based on subtotal
+    const deliveryFee = subtotal >= storeConfig.deliverySettings.freeDeliveryThreshold
       ? 0
       : storeConfig.deliverySettings.standardDeliveryFee;
-
+    
     return {
       items,
       subtotal,
-      delivery_fee,
-      total: subtotal + delivery_fee,
+      deliveryFee,
+      total: subtotal + deliveryFee,
     };
   };
 
-  // Load cart from localStorage on startup
+  // Load cart from localStorage on initial load
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem("cart");
-      if (savedCart) {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
         const parsedCart = JSON.parse(savedCart);
         setCart(parsedCart);
+      } catch (error) {
+        console.error('Failed to parse cart from localStorage', error);
       }
+    }
 
-      const savedWishlist = localStorage.getItem("wishlist");
-      if (savedWishlist) {
+    const savedWishlist = localStorage.getItem('wishlist');
+    if (savedWishlist) {
+      try {
         const parsedWishlist = JSON.parse(savedWishlist);
         setWishlist(parsedWishlist);
+      } catch (error) {
+        console.error('Failed to parse wishlist from localStorage', error);
       }
-    } catch (error) {
-      console.error("Failed to parse saved data from localStorage", error);
-      // Reset the cart if there's an error
-      localStorage.removeItem("cart");
-      localStorage.removeItem("wishlist");
+    }
+
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Failed to parse user from localStorage', error);
+      }
     }
   }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
+    localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
   // Save wishlist to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("wishlist", JSON.stringify(wishlist));
+    localStorage.setItem('wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
+
+  // Save user to localStorage whenever it changes
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+  }, [user]);
 
   // Cart operations
   const addToCart = (product: Product, quantity: number) => {
     setCart((prevCart) => {
+      // Check if product already exists in cart
       const existingItemIndex = prevCart.items.findIndex(
         (item) => item.product.id === product.id
       );
 
       let newItems;
       if (existingItemIndex >= 0) {
+        // Update quantity of existing item
         newItems = [...prevCart.items];
         newItems[existingItemIndex] = {
           ...newItems[existingItemIndex],
           quantity: newItems[existingItemIndex].quantity + quantity,
         };
       } else {
+        // Add new item to cart
         newItems = [...prevCart.items, { product, quantity }];
       }
 
@@ -132,25 +159,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => {
     setCart(initialCart);
-    localStorage.removeItem('cart');
   };
 
   // Wishlist operations
   const addToWishlist = (product: Product) => {
     setWishlist((prevWishlist) => {
+      // Check if product already exists in wishlist
       const exists = prevWishlist.some((item) => item.product.id === product.id);
-      if (exists) return prevWishlist;
-
+      
+      if (exists) {
+        return prevWishlist;
+      }
+      
       toast({
         title: "Added to wishlist",
         description: `${product.name} has been added to your wishlist.`,
       });
-
+      
       return [
         ...prevWishlist,
         {
           product,
-          added_at: new Date().toISOString(),
+          addedAt: new Date().toISOString(),
         },
       ];
     });
@@ -162,18 +192,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // Auth operations
+  const login = (userData: User) => {
+    setUser(userData);
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
+
   return (
     <AppContext.Provider
       value={{
         cart,
         wishlist,
-        isAuthenticated,
+        user,
+        isAuthenticated: !!user,
         addToCart,
         removeFromCart,
         updateCartItemQuantity,
         clearCart,
         addToWishlist,
         removeFromWishlist,
+        login,
+        logout,
       }}
     >
       {children}
@@ -184,7 +227,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 export function useApp() {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error("useApp must be used within an AppProvider");
+    throw new Error('useApp must be used within an AppProvider');
   }
   return context;
 }

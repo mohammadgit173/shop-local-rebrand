@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { user, isLoading: userLoading } = useUser();
+  const { user, refreshUserProfile } = useUser();
   const { toast } = useToast();
 
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -23,13 +23,12 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   
-  // Redirect if already logged in - fixed the infinite loop issue
+  // Redirect if already logged in
   useEffect(() => {
-    if (user && !userLoading) {
-      // Only redirect if we have a user and we're not loading
+    if (user) {
       navigate("/");
     }
-  }, [user, userLoading, navigate]);
+  }, [user, navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,22 +48,36 @@ const LoginPage = () => {
     
         if (loginError) {
           setError("Invalid credentials. Please try again.");
-          setIsLoading(false);
           return;
         }
     
-        if (data?.session) {
-          // Let the auth state listener in UserContext handle the session update
-          // This avoids race conditions between manual updates and listener updates
-          
-          // Success message
-          toast({
-            title: "Welcome back!",
-            description: "You have successfully logged in.",
-          });
-          
-          setIsLoading(false);
-          navigate("/");
+        if (data?.session?.user) {
+          console.log("[handleAuth] Logged in session user:", data.session.user);
+    
+          // Refresh context
+          console.log("[handleAuth] Refreshing user profile...");
+          await refreshUserProfile();
+    
+          // Check if profile exists in the users table
+          const { data: profileData, error: profileError } = await supabase
+            .from("users")
+            .select("phone")
+            .eq("id", data.session.user.id)
+            .single();
+    
+          console.log("[handleAuth] Profile data fetched:", { profileData, profileError });
+    
+          if (!profileData?.phone && profileError?.code === "PGRST116") {
+            console.log("[handleAuth] No profile found. Navigating to complete-profile...");
+            navigate("/complete-profile");
+          } else {
+            console.log("[handleAuth] Profile found. Navigating to home...");
+            toast({
+              title: "Welcome back!",
+              description: "You have successfully logged in.",
+            });
+            navigate("/");
+          }
         }
       } else {
         // Registration flow
@@ -75,7 +88,6 @@ const LoginPage = () => {
     
         if (signupError) {
           setError(signupError.message);
-          setIsLoading(false);
           return;
         }
     
@@ -83,25 +95,20 @@ const LoginPage = () => {
           // Some Supabase instances may require email confirmation
           if (data.session) {
             // Auto-sign in (email confirmation not required)
-            toast({
-              title: "Account created!",
-              description: "You have successfully registered and logged in.",
-            });
+            await refreshUserProfile();
             navigate("/complete-profile");
-            setIsLoading(false);
           } else {
             // Email confirmation required
             setEmailSent(true);
-            setIsLoading(false);
           }
-        } else {
-          setIsLoading(false);
         }
       }
     } catch (error) {
       console.error("Auth error:", error);
       setError("An unexpected error occurred. Please try again.");
+    } finally {
       setIsLoading(false);
+      console.log("[handleAuth] Done");
     }
   };
 
@@ -111,21 +118,6 @@ const LoginPage = () => {
     setEmailSent(false);
   };
 
-  // Show loading state while checking user authentication
-  if (userLoading) {
-    return (
-      <Layout hideNav>
-        <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-screen">
-          <div className="flex flex-col items-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Checking authentication status...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // If user is already logged in, this should not render due to the useEffect redirect
   return (
     <Layout hideNav>
       <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-screen">

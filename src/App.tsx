@@ -6,9 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AppProvider } from "@/contexts/AppContext";
 import { UserProvider } from "@/contexts/UserContext";
-import { AddressProvider } from "@/contexts/AddressContext";
-import { OrderProvider } from "@/contexts/OrderContext";
-import { useInitializeDatabase } from "@/lib/initializeDatabase";
 
 // Pages
 import Index from "@/pages/Index";
@@ -29,57 +26,48 @@ import CompleteProfilePage from "./pages/user/complete-profile";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  // Initialize database tables and functions
-  useInitializeDatabase();
-  
-  return (
-    <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <AppProvider>
-          <UserProvider>
-            <AddressProvider>
-              <OrderProvider>
-                <TooltipProvider>
-                  <Toaster />
-                  <SonnerToaster />
-                  <BrowserRouter>
-                    <Routes>
-                      {/* Public Pages */}
-                      <Route path="/" element={<Index />} />
-                      <Route path="/categories" element={<CategoriesPage />} />
-                      <Route path="/category/:id" element={<CategoryPage />} />
-                      <Route path="/product/:id" element={<ProductPage />} />
-                      <Route path="/cart" element={<CartPage />} />
-                      <Route path="/search" element={<SearchPage />} />
-                      <Route path="/login" element={<LoginPage />} />
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <LanguageProvider>
+      <AppProvider>
+        <UserProvider>
+          <TooltipProvider>
+            <Toaster />
+            <SonnerToaster />
+            <BrowserRouter>
+              <Routes>
+                {/* Public Pages */}
+                <Route path="/" element={<Index />} />
+                <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/category/:id" element={<CategoryPage />} />
+                <Route path="/product/:id" element={<ProductPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/login" element={<LoginPage />} />
 
-                      {/* New User Pages */}
-                      <Route path="/user/profile" element={<ProfilePage />} />
-                      <Route
-                        path="/user/edit-profile"
-                        element={<EditProfilePage />}
-                      />
-                      <Route path="/user/orders" element={<OrdersPage />} />
-                      <Route path="/user/settings" element={<SettingsPage />} />
+                {/* New User Pages */}
+                <Route path="/user/profile" element={<ProfilePage />} />
+                <Route
+                  path="/user/edit-profile"
+                  element={<EditProfilePage />}
+                />
+                <Route path="/user/orders" element={<OrdersPage />} />
+                <Route path="/user/settings" element={<SettingsPage />} />
 
-                      <Route
-                        path="/complete-profile"
-                        element={<CompleteProfilePage />}
-                      />
+                <Route
+                  path="/complete-profile"
+                  element={<CompleteProfilePage />}
+                />
 
-                      {/* Catch-all */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </BrowserRouter>
-                </TooltipProvider>
-              </OrderProvider>
-            </AddressProvider>
-          </UserProvider>
-        </AppProvider>
-      </LanguageProvider>
-    </QueryClientProvider>
-  );
-};
+                {/* Catch-all */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </UserProvider>
+      </AppProvider>
+    </LanguageProvider>
+  </QueryClientProvider>
+);
 
 export default App;

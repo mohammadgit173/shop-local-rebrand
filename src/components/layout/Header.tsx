@@ -15,11 +15,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 const Header = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
-  const { cart } = useApp();
+  const { cart, isAuthenticated } = useApp();
   const isMobile = useIsMobile();
-
-  // Make sure cart items exist before trying to access length
-  const cartItemsCount = cart && cart.items ? cart.items.reduce((sum, item) => sum + item.quantity, 0) : 0;
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b shadow-sm">
@@ -119,12 +116,12 @@ const Header = () => {
               onClick={() => navigate('/cart')}
             >
               <ShoppingCart className="h-5 w-5" />
-              {cartItemsCount > 0 && (
+              {cart.items.length > 0 && (
                 <Badge 
                   className="absolute -top-1 -right-1 bg-brand-primary text-brand-dark"
                   variant="secondary"
                 >
-                  {cartItemsCount}
+                  {cart.items.reduce((sum, item) => sum + item.quantity, 0)}
                 </Badge>
               )}
             </Button>
@@ -133,7 +130,7 @@ const Header = () => {
               variant="ghost" 
               size="icon"
               className="h-10 w-10"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate(isAuthenticated ? '/user/profile' : '/login')}
             >
               <User className="h-5 w-5" />
             </Button>
